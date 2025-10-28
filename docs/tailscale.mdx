@@ -1,0 +1,17 @@
+# TailScale #
+Tailscale is used as the VPN for this project so that there is no need for public internet exposure of the pihole server. Through the use of the terraform Tailscale provider, an auth-key is generated and injected into the nascent server. Additionally, the provider enables the configuration of the tailnet DNS server using the newly created pihole server's Tailscale IP address.
+All of this is done using non-ephemeral, yet narrow privileged, access credentials called OAuth clients. Below is a summary of the steps needed to create the OAuth client.
+
+## Tailscale Tags
+As a pre-requisite to creating an OAuth client, you will need to enable and define a Tailscale Access Control Tag. For this project, they tag `pihole` was used. To enable / configure your tags, naviage to your [Tailscale Admin Console](https://login.tailscale.com/admin) and click on the **Access Controls** tab. For this project, the following code was written into the ACL file:
+```js
+	"tagOwners": {
+		"tag:pihole": ["autogroup:admin"],
+	},
+```
+
+## Tailscale OAuth Client
+Once you have enabled and configured a tag, creating an OAuth client is straightforward. Still in the Admin Console, navigate to **Settings** and click **OAuth Clients**. When generating a new OAuth client, the following permissions should be used: `
+api_access_tokens, auth_keys, devices:core:read, dns`
+
+> **Note:** `api_access_tokens` may be vestigial from the original iteration of this project (pre-tailscale terraform provider). It may no longer be necessary.

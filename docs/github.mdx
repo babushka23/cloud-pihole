@@ -1,0 +1,22 @@
+# GitHub #
+GitHub was used as the source control for this project as well as the automation platform. The only outside configuration necessary for GitHub is the maintainance of the secrets. The secrets are used in the GitHub Action workflow to authenticate with AWS and Tailscale as well as set the pihole admin password. The following secrets are necessary for the GitHub Action workflow to run:
+* EC2 PEM (for SSH access)
+* AWS Role ARN (for OIDC)
+* Pihole application password
+* Tailscale OAuth client ID & secret
+
+The following secrets were used in development of this project and are no longer necessary:
+* AWS Access Key ID
+* AWS Secret Access Key
+* Tailscale auth key
+
+## Acquiring Secrets
+Acquiring the secrets used in this project are covered in their own pages. This section will simply go over the steps to add them to the GitHub repository.
+
+1. Navigate to the repository on GitHub.
+1. In the top nav, click on the **Settings** tab.
+1. On the left, under **Security**, click to expand **Secrets and variables**, then click **Actions**.
+1. Click the **New repository secret** button.
+1. Enter the name of the secret that corresponds to the name called in the [GitHub Actions](../.github/workflows/terraform-apply.yml) in the **Name** field.
+1. Enter the corresponding value of the secret in the **Secret** field.
+1. Click the **Add secret** button.

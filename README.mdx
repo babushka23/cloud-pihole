@@ -1,0 +1,41 @@
+# README #
+
+## What is this repository for? 
+
+* Project Mission - Learning how to host a tailscale connected pihole for free in aws using terraform and actions
+* Version - 1.0.1
+
+This repository contains the terraform code to deploy a Tailscale connected Pihole instance in AWS. It is designed to be run in a GitHub Actions workflow. The workflow utilizes terraform code to deploy an AWS EC2 instance running both [Tailscale](https://tailscale.com/) and [Pihole](https://pi-hole.net/). It will then set the Pihole's Tailnet IP as the DNS server for the Tailscale network and override local DNS settings for all other nodes. Effectively, a free AWS hosted ad blocker for all your Tailscale devices.
+
+For more information on parts of the project not stored in this repository (e.g. [AWS Policy](./docs/aws.mdx#iam_policy)), read the [/docs](./docs/main.mdx).
+
+## Version Notables
+** Version 1.0.1**
+* Updated docs to cover parts of the project not stored in this repository. 
+* Added a few more details to the README.
+
+**Version 1.0.0**
+* IT WORKS! Last addition was OIDC to secure the workflow \<\> AWS connection.
+
+**Pre 1.0.0**
+* Automation / workflows defined
+   * Includes secrets managed by repo
+   * Terraform will now be deployed if any changes are pushed to `main` branch via PR
+* Terraform `main.tf` and supporting files
+   * Currently using cleartext secrets
+   * Currently using ephemeral Tailscale key with no renewal (don't excpect this to work after 2025-07-13)
+* `scripts/` directory and supporting files
+
+## How do I get set up?
+
+This repo is meant to be unattended. It is designed to be run in a GitHub Actions workflow.
+
+To get "set up" simply clone the repo.
+
+### Contribution guidelines ###
+
+If you would like to contribute, please create a new branch, and make any changes you would like. Once you are happy with your changes, create a pull request to the `main` branch. Let me (@aren) know and we can discuss additions.
+
+### Who do I talk to? ###
+
+* _Owner:_ [Nobody](mailto:nobody@nowhere.ai)

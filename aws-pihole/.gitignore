@@ -1,0 +1,4 @@
+# Ignore some stuff inside the terraform folder
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.*

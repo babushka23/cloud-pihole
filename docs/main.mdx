@@ -1,0 +1,40 @@
+# AWS Pihole Documentation #
+Over the course of this project, there are aspects which need to be configured that are not stored in this repository. For example: the [GitHub Action secrets](./github.mdx/#secrets).
+
+## AWS
+> **Note:** For a more comprehensive overview of the AWS resources used in this project, please see the [AWS documentation](./aws.mdx).
+
+Setting up AWS for this project required the following: 
+* AWS Account (root)
+* IAM
+   * Identity Provider (OIDC)
+   * Policy
+   * Role
+* S3 Bucket
+
+The following parts are optional, but were used in creation of this project to either following security best practices or to make the project easier to configure:
+* AWS User (Admin)
+* EC2 Instance
+   > **Note:** It is *highly* recommended to create an EC2 instance prior to creating the rest of this project. Creating the EC2 instance once will force the creation of the PEM used for SSH access.
+
+## GitHub
+> **Note:** For a more comprehensive overview of the AWS resources used in this project, please see the [GitHub documentation](./github.mdx).
+
+The code for this project as well as the workflows are stored in the repo. The following secrets, however, were used within the GitHub Action workflow and are *not* stored in this repository:
+* EC2 PEM (for SSH access)
+* AWS Role ARN (for OIDC)
+* Pihole application password
+* Tailscale OAuth client ID & secret
+
+The following secrets were used in development of this project and are no longer necessary:
+* AWS Access Key ID
+* AWS Secret Access Key
+* Tailscale auth key
+
+## Tailscale
+> **Note:** For a more comprehensive overview of the AWS resources used in this project, please see the [Tailscale documentation](./tailscale.mdx).
+
+To enable Tailscale on the pihole *and* to overwrite the Tailnet DNS settings, an OAuth client ID is required:
+* Tailscale OAuth client ID
+* Tailscale OAuth client secret
+* Tailscale tags

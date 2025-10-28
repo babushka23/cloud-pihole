@@ -1,0 +1,180 @@
+# AWS #
+
+Setting up AWS for this project required the following: 
+* AWS Account (root)
+* IAM (OIDC)
+   * Identity Provider
+   * Policy
+   * Role
+* S3 Bucket (for terraform state)
+
+The following parts are optional, but were used in creation of this project to either following security best practices or to make the project easier to configure:
+* AWS User (Admin)
+* EC2 Instance
+   > **Note:** It is *highly* recommended to create an EC2 instance prior to creating the rest of this project. Creating the EC2 instance once will force the creation of the PEM used for SSH access.
+
+## IAM
+
+Best security practices advise using OIDC rather than storing AWS Access Key ID and Secret Access Key in the GitHub Action workflow. This is done by creating an IAM Role with a trust relationship to the GitHub OIDC provider.
+
+### Identity Provider
+[This page was used](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) for the configuration of the OIDC Identity Provider in AWS.
+
+### IAM Policy
+Policy was slowly dialed in trying to use the idea of least privilege. The policy is attached to the IAM Role and allows the GitHub Action workflow to interact with S3 (tf state) and EC2 (pihole instance). The working JSON has been included below.
+
+<details>
+   <summary>Raw JSON of IAM Policy used with OIDC Role</summary>
+
+```js
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "S3BackendAccess",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::pihole-tfstate",
+                "arn:aws:s3:::pihole-tfstate/terraform.tfstate"
+            ]
+        },
+        {
+            "Sid": "EC2Describe",
+            "Effect": "Allow",
+            "Action": "ec2:Describe*",
+            "Resource": "*"
+        },
+        {
+            "Sid": "EC2RunInstancesBase",
+            "Effect": "Allow",
+            "Action": "ec2:RunInstances",
+            "Resource": [
+                "arn:aws:ec2:us-east-2:REDACTED:instance/*",
+                "arn:aws:ec2:us-east-2:REDACTED:volume/*",
+                "arn:aws:ec2:us-east-2:REDACTED:network-interface/*",
+                "arn:aws:ec2:us-east-2:REDACTED:subnet/subnet-REDACTED",
+                "arn:aws:ec2:us-east-2::image/ami-02da2f5b47450f5a8"
+            ]
+        },
+        {
+            "Sid": "EC2RunInstancesSpecificKeyPair",
+            "Effect": "Allow",
+            "Action": "ec2:RunInstances",
+            "Resource": "arn:aws:ec2:us-east-2:REDACTED:key-pair/aws-pihole"
+        },
+        {
+            "Sid": "EC2RunInstancesSecurityGroup",
+            "Effect": "Allow",
+            "Action": "ec2:RunInstances",
+            "Resource": "arn:aws:ec2:us-east-2:REDACTED:security-group/*"
+        },
+        {
+            "Sid": "EC2InstanceManagement",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:TerminateInstances",
+                "ec2:StartInstances",
+                "ec2:StopInstances",
+                "ec2:DescribeInstanceStatus"
+            ],
+            "Resource": "arn:aws:ec2:us-east-2:*:*"
+        },
+        {
+            "Sid": "EC2InstanceTagging",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateTags"
+            ],
+            "Resource": "arn:aws:ec2:us-east-2:REDACTED:instance/*",
+            "Condition": {
+                "StringEquals": {
+                    "ec2:CreateAction": "RunInstances"
+                }
+            }
+        },
+        {
+            "Sid": "EC2TagManagement",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
+            ],
+            "Resource": "arn:aws:ec2:us-east-2:REDACTED:instance/*"
+        },
+        {
+            "Sid": "EC2ReadOnlyAccess",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeImages",
+                "ec2:DescribeKeyPairs",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeNetworkInterfaces"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "EC2SecurityGroupManagement",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateSecurityGroup",
+                "ec2:DeleteSecurityGroup",
+                "ec2:AuthorizeSecurityGroupEgress",
+                "ec2:RevokeSecurityGroupEgress"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+</details>
+
+### IAM Role
+OIDC utilizes an IAM Role with GitHub Actions using `assume role`. This role is configured with the above policy and the below Trust Relationship.
+
+#### Role Trust Relationship
+AWS has a pretty good UI for creating the OIDC Role in IAM. It mirrors what is in [the above GitHub documentation](). The relationship JSON has been included below for simplicity.
+
+<details>
+   <summary> Raw JSON of IAM Role Trust Relationship</summary>
+
+```js
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::REDACTED:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                },
+                "StringLike": {
+                    "token.actions.githubusercontent.com:sub": "repo:GITHUB_ORG/aws-pihole:*"
+                }
+            }
+        }
+    ]
+}
+```
+</details>
+
+## S3 Bucket
+Setting up an S3 bucket for this project to track terraform state is actually quite simple, just follow the wizard for creating a `General Purpose Bucket`. The only information needed for the terraform files is the bucket name chosen.
+
+## Optional Stuff
+### AWS Admin User
+For security purposes, it is recommended to not use the AWS Root account for *anything*. As such, an IAM user was created with admin access. This user is used to create the OIDC Role and S3 bucket. The user is not used in the GitHub Action workflow and as such is listed as optional.
+
+### EC2 Instance (PEM Generation)
+Additionally, when creating an EC2 instance for the first time, through the AWS console, a PEM file is created for SSH access. This PEM file is used to SSH into the instance and is required for the GitHub Action workflow. Creating an instance beforehand is recommended as it will force the creation of the PEM file. You could also make the PEM file and upload it to your AWS account as an alternative. 
+> **Note:** Be sure to delete the EC2 instance upon completion of PEM procurement. Else, you may end up running over your EC2 quote and getting charged.
